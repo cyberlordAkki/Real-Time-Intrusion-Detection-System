@@ -1,0 +1,2067 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>RTIDS — Real-Time Intrusion Detection System</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCRx8UMX15zzbeW5ha4vDU7NiY1iOhDbuk" async defer></script>
+<style>
+/* ── RESET ───────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:       #080c14;
+  --surface:  #0e1521;
+  --surface2: #141e2f;
+  --surface3: #1a2540;
+  --border:   #1c2e47;
+  --border2:  #243554;
+  --text:     #dde8f5;
+  --muted:    #4d6a8a;
+  --accent:   #2196f3;
+  --accent-l: #42a5f5;
+  --green:    #16a34a;
+  --green-l:  #22c55e;
+  --red:      #dc2626;
+  --red-l:    #ef4444;
+  --orange:   #ea580c;
+  --orange-l: #fb923c;
+  --yellow:   #ca8a04;
+  --yellow-l: #fbbf24;
+  --purple:   #6d28d9;
+  --purple-l: #a78bfa;
+  --pink:     #be185d;
+  --pink-l:   #f472b6;
+  --teal:     #0d9488;
+  --teal-l:   #2dd4bf;
+  --mono:     "JetBrains Mono",monospace;
+  --sans:     "DM Sans",sans-serif;
+  --radius:   10px;
+  --radius-sm:6px;
+  --shadow:   0 4px 20px rgba(0,0,0,.4);
+}
+/* ── LIGHT MODE ──────────────────────────────── */
+body.light-mode{
+  --bg:       #f0f4f8;
+  --surface:  #ffffff;
+  --surface2: #e8eef5;
+  --surface3: #dde6f0;
+  --border:   #c5d3e0;
+  --border2:  #b0c2d4;
+  --text:     #0f1f33;
+  --muted:    #5a7899;
+  --accent:   #1565c0;
+  --accent-l: #1976d2;
+  --shadow:   0 4px 20px rgba(0,0,0,.12);
+}
+body.light-mode .navbar{background:rgba(240,244,248,.97);border-bottom-color:#c5d3e0}
+body.light-mode .sidebar{background:rgba(255,255,255,.85)}
+body.light-mode body::before{background-image:linear-gradient(rgba(21,101,192,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(21,101,192,.04) 1px,transparent 1px)}
+body.light-mode .stat-num{color:#0f1f33}
+body.light-mode .brand{color:#0f1f33}
+body.light-mode .tbl th{color:#5a7899}
+body.light-mode .tbl td{color:#0f1f33}
+body.light-mode .tbl tbody tr:hover td{background:rgba(21,101,192,.05)}
+body.light-mode .mtbl th{color:#5a7899}
+body.light-mode .mtbl td{color:#0f1f33}
+body.light-mode .sec-title{color:#0f1f33}
+body.light-mode .pt{color:#1e3a5a}
+body.light-mode .ip-in{background:#fff;color:#0f1f33;border-color:#c5d3e0}
+body.light-mode .sev-select{background:#e8eef5;color:#0f1f33;border-color:#c5d3e0}
+body.light-mode .sidebar-footer{color:#5a7899;border-top-color:#c5d3e0}
+body.light-mode .blk-entry{background:rgba(220,38,38,.04);border-color:rgba(220,38,38,.18)}
+/* Light mode theme toggle button */
+.theme-toggle{
+  width:36px;height:36px;border-radius:50%;border:1px solid var(--border2);
+  background:var(--surface2);color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;transition:all .22s;flex-shrink:0;
+}
+.theme-toggle:hover{border-color:var(--accent);background:rgba(33,150,243,.1);box-shadow:0 0 12px rgba(33,150,243,.2)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  min-height:100vh;
+}
+
+/* Subtle grid background */
+body::before{
+  content:"";
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(33,150,243,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(33,150,243,.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;z-index:0;
+}
+
+/* ── NAVBAR ──────────────────────────────────── */
+.navbar{
+  height:56px;
+  background:rgba(14,21,33,.95);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 28px;gap:14px;
+  position:sticky;top:0;z-index:1000;
+  backdrop-filter:blur(10px);
+}
+.brand{
+  font-family:var(--mono);
+  font-size:14px;font-weight:700;
+  color:#fff;letter-spacing:.5px;
+  display:flex;align-items:center;gap:10px;
+}
+.brand-icon{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,#1565c0,#2196f3);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  box-shadow:0 0 16px rgba(33,150,243,.35);
+}
+.brand-pulse{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--green-l);
+  box-shadow:0 0 10px var(--green-l);
+  animation:blink 1.8s infinite;
+  flex-shrink:0;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.nav-divider{width:1px;height:22px;background:var(--border);flex-shrink:0}
+.nav-tag{
+  font-size:10px;text-transform:uppercase;letter-spacing:2px;
+  color:var(--muted);padding:3px 10px;
+  border:1px solid var(--border);border-radius:20px;
+}
+.nav-spacer{flex:1}
+.status-pill{
+  padding:4px 14px;border-radius:20px;
+  font-size:10px;font-weight:700;font-family:var(--mono);
+  letter-spacing:1px;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;
+}
+.pill-on{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
+.pill-off{background:rgba(220,38,38,.08);color:#ef4444;border:1px solid rgba(220,38,38,.18)}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1s infinite}
+.btn-engine{
+  padding:7px 18px;border-radius:7px;border:none;
+  cursor:pointer;font-family:var(--mono);
+  font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;
+  text-decoration:none;transition:all .2s;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.btn-start{background:var(--green);color:#fff}
+.btn-start:hover{background:#15803d;box-shadow:0 0 18px rgba(22,163,74,.45)}
+.btn-stop{background:var(--red);color:#fff}
+.btn-stop:hover{background:#b91c1c;box-shadow:0 0 18px rgba(220,38,38,.45)}
+#live-clock{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.5px}
+
+/* ── PAGE LAYOUT ─────────────────────────────── */
+.page{display:flex;gap:0;min-height:calc(100vh - 56px);position:relative;z-index:1}
+
+/* ── SIDEBAR ─────────────────────────────────── */
+.sidebar{
+  width:210px;flex-shrink:0;
+  background:rgba(14,21,33,.7);
+  border-right:1px solid var(--border);
+  padding:12px 0;
+  display:flex;flex-direction:column;
+  backdrop-filter:blur(8px);
+}
+.sidebar-section{
+  font-size:9px;text-transform:uppercase;letter-spacing:2px;
+  color:var(--muted);padding:10px 20px 4px;
+}
+.tab{
+  display:flex;align-items:center;gap:11px;
+  padding:10px 20px;cursor:pointer;
+  font-size:12px;font-weight:500;
+  color:var(--muted);
+  border-left:2px solid transparent;
+  border-radius:0 6px 6px 0;
+  margin:1px 8px 1px 0;
+  transition:all .18s;
+}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab.active{color:var(--accent-l);border-left-color:var(--accent);background:rgba(33,150,243,.08)}
+.tab-icon{width:16px;text-align:center;font-size:13px}
+.sidebar-footer{
+  margin-top:auto;padding:14px 18px;
+  border-top:1px solid var(--border);
+  font-size:10px;color:var(--muted);
+  line-height:2;font-family:var(--mono);
+}
+.sf-row{display:flex;justify-content:space-between;align-items:center}
+.sf-dot{width:7px;height:7px;border-radius:50%;background:var(--green-l);animation:blink 1.8s infinite;display:inline-block}
+
+/* ── CONTENT ─────────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+
+/* ── SECTIONS ────────────────────────────────── */
+.section{display:none}
+.section.active{display:flex;flex-direction:column;gap:16px}
+
+/* ── SECTION HEADER ──────────────────────────── */
+.sec-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2px;
+}
+.sec-title{
+  font-size:18px;font-weight:700;color:#fff;letter-spacing:-.3px;
+}
+.sec-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.sec-meta{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+/* ── KPI ROW ─────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.stat-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px 15px;
+  position:relative;overflow:hidden;
+  transition:border-color .25s,transform .18s,box-shadow .25s;
+  cursor:default;
+}
+.stat-card:hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:var(--shadow)}
+.stat-card::before{
+  content:"";position:absolute;
+  top:0;left:0;right:0;height:2px;
+  background:var(--c,var(--accent));
+  opacity:.8;
+}
+.stat-card::after{
+  content:"";position:absolute;
+  top:0;right:0;width:60px;height:60px;
+  background:radial-gradient(circle at top right,var(--c,var(--accent)) 0%,transparent 70%);
+  opacity:.06;pointer-events:none;
+}
+.stat-label{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px;font-weight:600}
+.stat-icon{position:absolute;top:14px;right:14px;font-size:16px;opacity:.2}
+.stat-num{font-family:var(--mono);font-size:24px;font-weight:700;color:#fff;line-height:1}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:6px}
+.stat-trend{
+  font-size:9px;font-weight:600;
+  display:inline-flex;align-items:center;gap:3px;
+  padding:1px 6px;border-radius:10px;margin-top:4px;
+}
+.trend-up{background:rgba(34,197,94,.12);color:#22c55e}
+.trend-dn{background:rgba(220,38,38,.1);color:#ef4444}
+
+/* ── PANEL ───────────────────────────────────── */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  transition:border-color .2s;
+}
+.panel:hover{border-color:var(--border2)}
+.ph{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  gap:8px;
+}
+.pt{
+  font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.5px;color:#cbd5e8;
+  display:flex;align-items:center;gap:8px;
+}
+.pt-icon{opacity:.6;font-size:12px}
+.pb{
+  font-size:10px;padding:2px 10px;border-radius:20px;font-family:var(--mono);
+  background:rgba(33,150,243,.1);color:var(--accent-l);
+  border:1px solid rgba(33,150,243,.18);white-space:nowrap;
+}
+.pb.green{background:rgba(34,197,94,.08);color:#22c55e;border-color:rgba(34,197,94,.2)}
+.pb.red  {background:rgba(220,38,38,.08);color:#ef4444;border-color:rgba(220,38,38,.18)}
+.pb.orange{background:rgba(234,88,12,.1);color:#fb923c;border-color:rgba(234,88,12,.2)}
+.pbody{padding:16px}
+
+/* ── GRIDS ───────────────────────────────────── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px}
+
+/* ── MAP ─────────────────────────────────────── */
+#attack-map{height:360px;border-radius:0 0 var(--radius) var(--radius)}
+#attack-map-wrapper{position:relative}
+.gmap-legend{
+  position:absolute;bottom:14px;left:14px;z-index:10;
+  background:rgba(10,15,25,.88);border:1px solid rgba(255,255,255,.12);
+  border-radius:7px;padding:9px 13px;font-size:10px;
+  display:flex;flex-direction:column;gap:5px;backdrop-filter:blur(6px);
+  pointer-events:none;
+}
+.gmap-legend-row{display:flex;align-items:center;gap:7px;color:#cbd5e8}
+.gmap-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── TABLE ───────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{
+  font-size:9px;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--muted);padding:8px 10px;text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap;font-weight:600;
+}
+.tbl td{
+  padding:9px 10px;border-bottom:1px solid rgba(28,46,71,.5);
+  font-size:12px;vertical-align:middle;
+}
+.tbl tbody tr{transition:background .15s}
+.tbl tbody tr:hover td{background:rgba(33,150,243,.03)}
+.tbl-wrap{max-height:360px;overflow-y:auto}
+@keyframes rowIn{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+.new-row td{animation:rowIn .35s ease}
+
+/* ── BADGES — RTIDS: DoS | Normal ───────── */
+.badge{display:inline-block;padding:2px 9px;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);letter-spacing:.3px}
+.b-dos   {background:rgba(220,38,38,.14);color:#ef4444;border:1px solid rgba(220,38,38,.2)}
+.b-normal{background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.18)}
+.b-crit  {background:rgba(220,38,38,.18);color:#ef4444;border:1px solid rgba(220,38,38,.3)}
+.b-low   {background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.18)}
+.b-blk   {background:rgba(220,38,38,.1);color:#ef4444}
+.b-ok    {background:rgba(34,197,94,.08);color:#22c55e}
+
+/* ── MODEL TABLE ─────────────────────────────── */
+.mtbl{width:100%;border-collapse:collapse}
+.mtbl th{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);font-weight:600}
+.mtbl td{padding:9px 10px;border-bottom:1px solid rgba(28,46,71,.5);font-size:12px}
+.mtbl tr.best-row td{background:rgba(33,150,243,.05)}
+.bar-wrap{display:flex;align-items:center;gap:8px}
+.bar-bg{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 1.2s ease}
+.bar-fill.gold{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.rank-icon{font-size:15px;line-height:1}
+
+/* ── CHART WRAP ──────────────────────────────── */
+.ch-wrap{position:relative;height:200px}
+.ch-wrap.tall{height:250px}
+.ch-wrap.xtra{height:180px}
+
+/* ── DONUT ───────────────────────────────────── */
+.donut-row{display:flex;align-items:center;gap:20px}
+.donut-row canvas{max-width:120px;max-height:120px;flex-shrink:0}
+.dl{display:flex;flex-direction:column;gap:8px;flex:1}
+.dl-item{display:flex;align-items:center;gap:8px;font-size:11px}
+.dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dl-label{flex:1;color:var(--muted)}
+.dl-pct{font-size:9px;color:var(--muted)}
+.dl-val{color:#fff;font-weight:700;font-family:var(--mono)}
+
+/* ── FIREWALL ────────────────────────────────── */
+.ip-row{display:flex;gap:8px;margin-bottom:12px}
+.ip-in{
+  flex:1;background:rgba(0,0,0,.3);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 13px;color:var(--text);font-family:var(--mono);font-size:12px;
+  outline:none;transition:border-color .2s;
+}
+.ip-in:focus{border-color:var(--accent)}
+.btn-blk{
+  padding:9px 16px;border:none;border-radius:var(--radius-sm);
+  background:var(--red);color:#fff;cursor:pointer;
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;transition:all .2s;white-space:nowrap;
+}
+.btn-blk:hover{background:#b91c1c;box-shadow:0 0 14px rgba(220,38,38,.4)}
+.sev-select{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:11px;
+  padding:9px 10px;border-radius:var(--radius-sm);outline:none;cursor:pointer;
+}
+.blocked-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
+.blk-entry{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 13px;
+  background:rgba(220,38,38,.05);
+  border:1px solid rgba(220,38,38,.14);
+  border-radius:var(--radius-sm);
+  transition:background .15s;
+}
+.blk-entry:hover{background:rgba(220,38,38,.09)}
+.blk-ip{font-family:var(--mono);font-size:12px;color:#ef4444}
+.blk-meta{font-size:10px;color:var(--muted);margin-top:2px}
+.btn-unblk{
+  padding:4px 11px;border-radius:4px;border:1px solid rgba(34,197,94,.25);
+  background:rgba(34,197,94,.07);color:#22c55e;
+  cursor:pointer;font-size:10px;font-family:var(--mono);
+  transition:all .2s;white-space:nowrap;
+}
+.btn-unblk:hover{background:rgba(34,197,94,.18)}
+
+/* ── SEVERITY TIMELINE ───────────────────────── */
+.timeline-wrap{display:flex;flex-direction:column;gap:6px;padding:4px 0}
+.tl-row{display:flex;align-items:center;gap:10px;font-size:11px}
+.tl-time{font-family:var(--mono);color:var(--muted);width:75px;flex-shrink:0;font-size:10px}
+.tl-bar{flex:1;height:8px;border-radius:4px;position:relative;overflow:hidden}
+.tl-bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.tl-label{width:70px;flex-shrink:0;text-align:right;font-family:var(--mono);font-size:10px}
+
+/* ── ALERT BADGE ─────────────────────────────── */
+.alert-box{
+  background:rgba(33,150,243,.06);
+  border:1px solid rgba(33,150,243,.2);
+  border-radius:var(--radius-sm);
+  padding:11px 15px;
+  display:flex;align-items:center;gap:12px;
+  font-size:11px;line-height:1.6;
+}
+.alert-box.critical{background:rgba(220,38,38,.07);border-color:rgba(220,38,38,.2)}
+.alert-icon{font-size:18px;flex-shrink:0}
+
+/* ── MINI STAT ───────────────────────────────── */
+.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px;text-align:center;
+}
+.mini-num{font-family:var(--mono);font-size:20px;font-weight:700;color:#fff}
+.mini-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-top:3px}
+
+/* ── EMAIL PANEL ─────────────────────────────── */
+.email-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.email-row:last-child{border-bottom:none}
+.email-icon{width:36px;height:36px;border-radius:8px;background:rgba(33,150,243,.1);border:1px solid rgba(33,150,243,.2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.email-info{flex:1;min-width:0}
+.email-to{font-size:12px;color:#fff;font-family:var(--mono)}
+.email-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.btn-test{
+  padding:6px 14px;border:1px solid rgba(33,150,243,.3);
+  background:rgba(33,150,243,.1);color:var(--accent-l);
+  border-radius:5px;cursor:pointer;font-size:10px;font-family:var(--mono);
+  transition:all .2s;white-space:nowrap;
+}
+.btn-test:hover{background:rgba(33,150,243,.2);border-color:var(--accent)}
+
+/* ── TOAST ───────────────────────────────────── */
+.toast{
+  position:fixed;bottom:22px;right:22px;
+  background:var(--surface2);border-radius:var(--radius-sm);
+  padding:11px 20px;font-size:12px;font-family:var(--mono);
+  z-index:9999;animation:toastIn .3s ease;
+  box-shadow:0 8px 28px rgba(0,0,0,.5);
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.toast.ok  {border:1px solid rgba(34,197,94,.35);color:#22c55e}
+.toast.err {border:1px solid rgba(220,38,38,.35);color:#ef4444}
+.toast.info{border:1px solid rgba(33,150,243,.35);color:var(--accent-l)}
+
+/* ── EMPTY ───────────────────────────────────── */
+.empty{text-align:center;padding:36px;color:var(--muted);font-size:12px}
+
+/* ── RESPONSIVE ──────────────────────────────── */
+@media(max-width:1100px){
+  .stat-row{grid-template-columns:repeat(3,1fr)}
+  .grid4{grid-template-columns:1fr 1fr}
+}
+@media(max-width:960px){
+  .sidebar{display:none}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .grid2,.grid3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+{% macro attack_badge(t) %}
+  {% if t=="DoS" %}<span class="badge b-dos">DoS</span>
+  {% else %}<span class="badge b-normal">Normal</span>{% endif %}
+{% endmacro %}
+{% macro sev_badge(s) %}
+  {% if s=="Critical" %}<span class="badge b-crit">Critical</span>
+  {% else %}<span class="badge b-low">Low</span>{% endif %}
+{% endmacro %}
+
+<!-- ══ NAVBAR ════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="brand">
+    <div class="brand-icon" style="background:linear-gradient(135deg,#0d47a1,#1e88e5);position:relative;overflow:hidden">
+      <span style="font-size:16px;position:relative;z-index:1">🛡</span>
+      <span style="position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.08));"></span>
+    </div>
+    <div>
+      <div style="font-size:15px;font-weight:800;letter-spacing:1.5px;line-height:1">RTIDS</div>
+      <div style="font-size:8px;color:var(--muted);font-weight:400;letter-spacing:1.5px;text-transform:uppercase;line-height:1;margin-top:2px">Real-Time Intrusion Detection System</div>
+    </div>
+    <div class="brand-pulse"></div>
+  </div>
+  <div class="nav-divider"></div>
+  <div style="display:flex;flex-direction:column;gap:1px">
+    <span style="font-size:10px;color:var(--text);font-weight:600;letter-spacing:.3px">Real-Time Intrusion Detection &amp; Response System</span>
+    <span style="font-size:9px;color:var(--muted);font-family:var(--mono);letter-spacing:.5px">NSL-KDD Dataset · {{ best_name }} + {{ baseline_name }} · RTIDS</span>
+  </div>
+  <div class="nav-divider"></div>
+  <span class="nav-tag" style="color:#22d3ee;border-color:rgba(34,211,238,.3);background:rgba(34,211,238,.06);display:flex;align-items:center;gap:5px"><span style="width:5px;height:5px;border-radius:50%;background:#22d3ee;animation:blink 1.2s infinite;display:inline-block"></span>ML Powered</span>
+  <div class="nav-spacer"></div>
+  <div class="status-pill {% if running %}pill-on{% else %}pill-off{% endif %}" id="eng-pill">
+    <span class="pill-dot"></span>
+    {% if running %}RUNNING{% else %}STOPPED{% endif %}
+  </div>
+  {% if running %}
+    <a href="/stop"  class="btn-engine btn-stop"><i class="fas fa-stop"></i> Stop Engine</a>
+  {% else %}
+    <a href="/start" class="btn-engine btn-start"><i class="fas fa-play"></i> Start Engine</a>
+  {% endif %}
+  <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Toggle Light/Dark Mode">🌙</button>
+  <div class="nav-divider"></div>
+  <div id="live-clock">--:--:--</div>
+</nav>
+
+<!-- ══ ADMIN LOGIN OVERLAY ══════════════════════════ -->
+<div id="login-overlay" style="
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(8,12,20,0.97);
+  display:flex;align-items:center;justify-content:center;
+  z-index:99999;backdrop-filter:blur(8px);
+">
+  <div style="
+    background:#0e1521;border:1px solid #1c2e47;border-radius:14px;
+    padding:40px 36px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    display:flex;flex-direction:column;align-items:center;gap:0;
+  ">
+    <div style="width:48px;height:48px;background:rgba(33,150,243,0.12);border:1px solid rgba(33,150,243,0.3);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:18px">
+      <i class="fas fa-shield-alt" style="color:#2196f3;font-size:20px"></i>
+    </div>
+    <div style="font-size:18px;font-weight:800;color:#dde8f5;letter-spacing:0.5px;margin-bottom:4px">RTIDS Admin</div>
+    <div style="font-size:11px;color:#4d6a8a;font-family:'JetBrains Mono',monospace;letter-spacing:1px;margin-bottom:28px">REAL-TIME INTRUSION DETECTION</div>
+
+    <div style="width:100%;margin-bottom:12px">
+      <div style="font-size:10px;color:#4d6a8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Username</div>
+      <input id="login-user" type="text" value="admin" placeholder="admin"
+        style="width:100%;background:#141e2f;border:1px solid #1c2e47;border-radius:8px;padding:10px 14px;color:#dde8f5;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"
+      />
+    </div>
+
+    <div style="width:100%;margin-bottom:20px">
+      <div style="font-size:10px;color:#4d6a8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Password</div>
+      <input id="login-pass" type="password" placeholder="••••••••"
+        style="width:100%;background:#141e2f;border:1px solid #1c2e47;border-radius:8px;padding:10px 14px;color:#dde8f5;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none"
+        onkeydown="if(event.key==='Enter')doAdminLogin()"
+      />
+    </div>
+
+    <div id="login-err" style="display:none;width:100%;background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);border-radius:6px;padding:8px 12px;font-size:12px;color:#ef4444;margin-bottom:12px;text-align:center">
+      ❌ Invalid credentials
+    </div>
+
+    <button onclick="doAdminLogin()" style="
+      width:100%;background:#2196f3;border:none;border-radius:8px;
+      padding:11px;color:#fff;font-weight:700;font-size:13px;
+      letter-spacing:0.5px;cursor:pointer;
+    ">
+      <i class="fas fa-lock-open"></i> &nbsp;Login
+    </button>
+
+    <div style="font-size:10px;color:#4d6a8a;margin-top:16px;font-family:'JetBrains Mono',monospace">NSL-KDD · RTIDS · Secured Access</div>
+  </div>
+</div>
+
+<script>
+function doAdminLogin(){
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value.trim();
+  if(u === 'admin' && p === 'admin123'){
+    document.getElementById('login-overlay').style.display = 'none';
+    try{ localStorage.setItem('rtids-auth','1'); }catch(e){}
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+// Auto-bypass if already logged in this session
+(function(){
+  try{ if(localStorage.getItem('rtids-auth')==='1') document.getElementById('login-overlay').style.display='none'; }catch(e){}
+})();
+</script>
+<!-- ══ PAGE ══════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Navigation</div>
+    <div class="tab active" onclick="switchTab('dashboard',this)">
+      <span class="tab-icon"><i class="fas fa-th-large"></i></span> Dashboard
+    </div>
+    <div class="tab" onclick="switchTab('analytics',this)">
+      <span class="tab-icon"><i class="fas fa-chart-bar"></i></span> Analytics
+    </div>
+    <div class="tab" onclick="switchTab('map',this)">
+      <span class="tab-icon"><i class="fas fa-globe-asia"></i></span> Threat Map
+    </div>
+    <div class="tab" onclick="switchTab('events',this)">
+      <span class="tab-icon"><i class="fas fa-list-ul"></i></span> Event Log
+    </div>
+    <div class="sidebar-section" style="margin-top:8px">ML Engine</div>
+    <div class="tab" onclick="switchTab('models',this)">
+      <span class="tab-icon"><i class="fas fa-brain"></i></span> Model Results
+    </div>
+    <div class="sidebar-section" style="margin-top:8px">Security</div>
+    <div class="tab" onclick="switchTab('firewall',this)">
+      <span class="tab-icon"><i class="fas fa-fire"></i></span> Firewall
+    </div>
+    <div class="tab" onclick="switchTab('alerts',this)">
+      <span class="tab-icon"><i class="fas fa-envelope-open-text"></i></span> Email Alerts
+    </div>
+    <div class="sidebar-footer">
+      <div class="sf-row">
+        <span>Engine</span>
+        <span><span class="sf-dot"></span> {% if running %}Active{% else %}Idle{% endif %}</span>
+      </div>
+      <div class="sf-row"><span>Best Model</span><span style="color:#fbbf24">{{ best_name }}</span></div>
+      <div class="sf-row"><span>Accuracy</span><span style="color:#22c55e">{% if model_results and best_name in model_results %}{{ "%.2f"|format(model_results[best_name]["Accuracy (%)"]) }}%{% else %}—{% endif %}</span></div>
+      <div class="sf-row"><span>Alert To</span><span style="color:var(--accent-l)">✉ akki</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:9px;color:var(--muted);letter-spacing:.5px">RTIDS · BCA Final Year Project</div>
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <!-- ══ DASHBOARD ══════════════════════════════════ -->
+    <div id="sec-dashboard" class="section active">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Security Dashboard</div>
+          <div class="sec-sub">Real-time network intrusion monitoring · NSL-KDD dataset</div>
+        </div>
+        <div class="sec-meta" id="last-updated">Updated: {{ now }}</div>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="stat-row">
+        <div class="stat-card" style="--c:var(--accent)">
+          <div class="stat-label">Total Events</div>
+          <div class="stat-icon"><i class="fas fa-database"></i></div>
+          <div class="stat-num" id="s-total">{{ stats.total }}</div>
+          <div class="stat-sub">Since monitoring start</div>
+        </div>
+        <div class="stat-card" style="--c:var(--red-l)">
+          <div class="stat-label">IPs Blocked</div>
+          <div class="stat-icon"><i class="fas fa-ban"></i></div>
+          <div class="stat-num" id="s-blocked">{{ stats.blocked }}</div>
+          <div class="stat-sub">Auto + manual blocks</div>
+        </div>
+        <div class="stat-card" style="--c:var(--green-l)">
+          <div class="stat-label">Not Blocked</div>
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-num" id="s-notblocked">{{ stats.not_blocked }}</div>
+          <div class="stat-sub">Benign / low severity</div>
+        </div>
+        <div class="stat-card" style="--c:var(--orange-l)">
+          <div class="stat-label">Critical Threats</div>
+          <div class="stat-icon"><i class="fas fa-skull-crossbones"></i></div>
+          <div class="stat-num" id="s-critical">0</div>
+          <div class="stat-sub">DoS attacks only</div>
+        </div>
+        <div class="stat-card" style="--c:var(--teal-l)">
+          <div class="stat-label">Top Origin</div>
+          <div class="stat-icon"><i class="fas fa-map-marker-alt"></i></div>
+          <div class="stat-num" id="s-country" style="font-size:16px;padding-top:4px">{{ stats.top_country }}</div>
+          <div class="stat-sub" id="s-country-cnt">{{ stats.top_country_count }} attacks</div>
+        </div>
+        <div class="stat-card" style="--c:var(--purple-l)">
+          <div class="stat-label">Last Event</div>
+          <div class="stat-icon"><i class="fas fa-clock"></i></div>
+          <div class="stat-num" id="s-latest" style="font-size:11px;padding-top:6px">{{ stats.latest_time }}</div>
+          <div class="stat-sub">Most recent detection</div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW 1 -->
+      <div class="grid3">
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-chart-pie"></i></span> Attack Distribution</span>
+            <span class="pb">Live</span>
+          </div>
+          <div class="pbody">
+            <div class="donut-row">
+              <canvas id="donutChart" width="120" height="120"></canvas>
+              <div class="dl" id="donut-legend">
+                <div class="dl-item"><div class="dl-dot" style="background:#ef4444"></div><span class="dl-label">DoS</span><span class="dl-val">0</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-signal"></i></span> Severity Breakdown</span>
+            <span class="pb">By Count</span>
+          </div>
+          <div class="pbody"><div class="ch-wrap"><canvas id="sevChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-flag"></i></span> Top Attack Countries</span>
+            <span class="pb">Top 6</span>
+          </div>
+          <div class="pbody"><div class="ch-wrap"><canvas id="countryChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- LIVE EVENTS -->
+      <div class="panel">
+        <div class="ph">
+          <span class="pt"><span class="pt-icon"><i class="fas fa-bolt"></i></span> Live Event Stream</span>
+          <span class="pb" id="total-badge">{{ stats.total }} events</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Timestamp</th><th>Attack Type</th><th>Severity</th><th>Source IP</th><th>Country</th><th>Recommended Action</th><th>Block Status</th></tr></thead>
+            <tbody id="events-tbody">
+              {% for r in logs %}
+              <tr>
+                <td style="font-family:var(--mono);color:var(--accent-l);font-size:11px">{{ r.timestamp }}</td>
+                <td>{{ attack_badge(r.attack_name) }}</td>
+                <td>{{ sev_badge(r.severity) }}</td>
+                <td style="font-family:var(--mono);font-size:11px">{{ r.ip }}</td>
+                <td>{{ r.country }}</td>
+                <td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.action_recommended }}</td>
+                <td>
+                  {% if r.block_status != "Not Blocked" %}
+                  <span class="badge b-blk">{{ r.block_status }}</span>
+                  {% else %}
+                  <span class="badge b-ok">Not Blocked</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ANALYTICS ══════════════════════════════════ -->
+    <div id="sec-analytics" class="section">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Analytics Center</div>
+          <div class="sec-sub">Deep-dive charts and trend analysis</div>
+        </div>
+      </div>
+
+      <!-- Live Detection Feed + Block vs Not Blocked -->
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-rss"></i></span> Live Detection Feed</span>
+            <span class="pb" id="feed-badge">Live</span>
+          </div>
+          <div class="pbody" style="padding:0">
+            <div id="live-feed-list" style="max-height:260px;overflow-y:auto;padding:8px 0"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-shield-alt"></i></span> Block vs Not Blocked</span>
+            <span class="pb">Response Rate</span>
+          </div>
+          <div class="pbody"><div class="ch-wrap tall"><canvas id="blockRateChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- Model Accuracy Bar + Country Bar -->
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-trophy"></i></span> Model Accuracy Comparison</span>
+            <span class="pb">{{ best_name }} vs {{ baseline_name }}</span>
+          </div>
+          <div class="pbody"><div class="ch-wrap tall"><canvas id="modelAccChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-globe"></i></span> Country Threat Map</span>
+            <span class="pb">Top Origins</span>
+          </div>
+          <div class="pbody"><div class="ch-wrap tall"><canvas id="countryBarChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- Summary stats row -->
+      <div class="grid3">
+        <div class="panel" style="--c:var(--red-l)">
+          <div class="ph"><span class="pt">DoS Rate</span></div>
+          <div class="pbody" style="text-align:center">
+            <div style="font-family:var(--mono);font-size:32px;font-weight:700;color:#ef4444" id="pct-dos">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">of all attacks</div>
+          </div>
+        </div>
+        <div class="panel" style="--c:var(--green-l)">
+          <div class="ph"><span class="pt">Normal Rate</span></div>
+          <div class="pbody" style="text-align:center">
+            <div style="font-family:var(--mono);font-size:32px;font-weight:700;color:#22c55e" id="pct-normal">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">of all traffic</div>
+          </div>
+        </div>
+        <div class="panel" style="--c:var(--accent)">
+          <div class="ph"><span class="pt">Block Rate</span></div>
+          <div class="pbody" style="text-align:center">
+            <div style="font-family:var(--mono);font-size:32px;font-weight:700;color:#38bdf8" id="pct-blocked">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">IPs blocked (DoS)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ THREAT MAP ══════════════════════════════════ -->
+    <div id="sec-map" class="section">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Global Threat Map</div>
+          <div class="sec-sub">Real-time geolocation of detected attack origins</div>
+        </div>
+        <span class="pb" id="map-badge">Loading...</span>
+      </div>
+      <div class="panel">
+        <div class="ph">
+          <span class="pt"><span class="pt-icon"><i class="fas fa-map"></i></span> Attack Origin Map</span>
+          <div style="display:flex;gap:12px;align-items:center">
+            <span style="font-size:10px;color:#ef4444"><i class="fas fa-circle" style="font-size:8px"></i> Critical (DoS)</span>
+            <span style="font-size:10px;color:#4ade80"><i class="fas fa-circle" style="font-size:8px"></i> Normal</span>
+          </div>
+        </div>
+        <div id="attack-map-wrapper" style="position:relative">
+          <div id="attack-map"></div>
+          <div class="gmap-legend">
+            <div class="gmap-legend-row"><div class="gmap-dot" style="background:#ef4444;box-shadow:0 0 6px #ef4444"></div> Critical — DoS</div>
+            <div class="gmap-legend-row"><div class="gmap-dot" style="background:#4ade80;box-shadow:0 0 6px #4ade80"></div> Normal</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ EVENTS ══════════════════════════════════════ -->
+    <div id="sec-events" class="section">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Event Log</div>
+          <div class="sec-sub">Full detection history — last 200 events</div>
+        </div>
+        <span class="pb" id="ev-count-badge">—</span>
+      </div>
+      <div class="panel">
+        <div class="ph">
+          <span class="pt"><span class="pt-icon"><i class="fas fa-history"></i></span> All Events</span>
+          <div style="display:flex;gap:8px">
+            <input id="ev-filter" class="ip-in" placeholder="Filter by IP or type..." style="width:200px;padding:5px 10px;font-size:11px" oninput="filterEvents()"/>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Timestamp</th><th>Type</th><th>Severity</th><th>IP</th><th>Country</th><th>Action</th><th>Status</th><th>Block</th></tr></thead>
+            <tbody id="events-full-tbody"><tr><td colspan="8" class="empty">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MODELS ══════════════════════════════════════ -->
+    <div id="sec-models" class="section">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">ML Model Results</div>
+          <div class="sec-sub">Trained on NSL-KDD dataset — Binary: Normal | DoS</div>
+        </div>
+      </div>
+
+      <!-- Best + Baseline highlight -->
+      <div class="grid2">
+        <div class="panel" style="border-color:rgba(33,150,243,.3)">
+          <div class="ph"><span class="pt">🥇 Best Model</span><span class="pb green">Primary Classifier</span></div>
+          <div class="pbody">
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+              <div style="font-family:var(--mono);font-size:26px;font-weight:700;color:var(--accent-l)">{{ best_name }}</div>
+              <div>
+                <div style="font-size:11px;color:var(--muted)">Accuracy</div>
+                <div style="font-family:var(--mono);font-size:22px;color:#22c55e">{{ "%.2f"|format(model_results[best_name]["Accuracy (%)"]) }}%</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted)">F1 Score</div>
+                <div style="font-family:var(--mono);font-size:22px;color:var(--accent-l)">{{ "%.2f"|format(model_results[best_name]["F1 Score (%)"]) }}%</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted)">Precision</div>
+                <div style="font-family:var(--mono);font-size:22px;color:#fbbf24">{{ "%.2f"|format(model_results[best_name]["Precision (%)"]) }}%</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;font-size:11px;color:var(--muted);line-height:1.8">
+              Primary model for real-time detection. Trained with SMOTE oversampling for class balance.
+              Produces predictions for 2 classes: DoS and Normal (RTIDS).
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt">🥈 Baseline Model</span><span class="pb">Comparison</span></div>
+          <div class="pbody">
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+              <div style="font-family:var(--mono);font-size:26px;font-weight:700;color:#93c5fd">{{ baseline_name }}</div>
+              <div>
+                <div style="font-size:11px;color:var(--muted)">Accuracy</div>
+                <div style="font-family:var(--mono);font-size:22px;color:#fbbf24">{{ "%.2f"|format(model_results[baseline_name]["Accuracy (%)"]) }}%</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted)">F1 Score</div>
+                <div style="font-family:var(--mono);font-size:22px;color:#60a5fa">{{ "%.2f"|format(model_results[baseline_name]["F1 Score (%)"]) }}%</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;font-size:11px;color:var(--muted);line-height:1.8">
+              Runs alongside best model for ensemble comparison. When models disagree, the event is flagged
+              in the terminal with a ≠ DIFFER marker for manual review.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full results table + bar chart -->
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph"><span class="pt"><span class="pt-icon"><i class="fas fa-table"></i></span> Classifier Leaderboard</span><span class="pb">NSL-KDD Test Set</span></div>
+          <div class="pbody">
+            <table class="mtbl" id="model-table">
+              <thead><tr><th>Rank</th><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead>
+              <tbody>
+                {% set ranks = ["🥇","🥈","🥉","4th","5th","6th","7th"] %}
+                {% for name, m in model_results.items() %}
+                <tr class="{% if loop.index == 1 %}best-row{% endif %}">
+                  <td class="rank-icon">{{ ranks[loop.index0] if loop.index0 < 7 else loop.index }}</td>
+                  <td style="font-weight:{% if loop.index==1 %}700{% else %}400{% endif %};color:{% if loop.index==1 %}#fff{% else %}var(--text){% endif %}">{{ name }}</td>
+                  <td>
+                    <div class="bar-wrap">
+                      <span style="min-width:50px;font-family:var(--mono);font-size:11px">{{ "%.2f"|format(m["Accuracy (%)"]) }}%</span>
+                      <div class="bar-bg"><div class="bar-fill {% if loop.index==1 %}gold{% endif %}" style="width:{{ ((m['Accuracy (%)']-40)/60*100)|round(1) }}%"></div></div>
+                    </div>
+                  </td>
+                  <td style="font-family:var(--mono);font-size:11px">{{ "%.2f"|format(m["Precision (%)"]) }}%</td>
+                  <td style="font-family:var(--mono);font-size:11px">{{ "%.2f"|format(m["Recall (%)"]) }}%</td>
+                  <td style="font-family:var(--mono);font-size:11px">{{ "%.2f"|format(m["F1 Score (%)"]) }}%</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt"><span class="pt-icon"><i class="fas fa-chart-bar"></i></span> Accuracy vs F1 Score</span><span class="pb">7 Models</span></div>
+          <div class="pbody"><div class="ch-wrap tall"><canvas id="modelBarChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- Confusion Matrix + ROC — Interactive Charts -->
+<div class="grid2">
+  <div class="panel">
+    <div class="ph">
+      <span class="pt"><i class="fas fa-th" style="margin-right:6px;color:var(--accent)"></i>Confusion Matrix — {{ best_name }}</span>
+      <span class="pb" style="color:var(--muted);font-size:10px">Binary · DoS | Normal</span>
+    </div>
+    <div class="pbody">
+      <!-- ── Confusion Matrix HTML Grid ── -->
+      <div style="font-family:var(--mono);padding:4px 0">
+        <!-- Predicted header -->
+        <div style="display:flex;margin-bottom:6px;padding-left:90px;gap:6px">
+          <div style="width:130px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">Predicted DoS</div>
+          <div style="width:130px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">Predicted Normal</div>
+        </div>
+        <!-- Row 1: Actual DoS -->
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <div style="width:84px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);flex-shrink:0">Actual DoS</div>
+          <!-- TP -->
+          <div style="width:130px;height:100px;border-radius:8px;background:rgba(33,150,243,.14);border:1.5px solid rgba(33,150,243,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="font-size:9px;letter-spacing:1px;color:rgba(33,150,243,.75);text-transform:uppercase">TP</span>
+            <span style="font-size:26px;font-weight:700;color:#60c8ff;line-height:1">7,682</span>
+            <span style="font-size:10px;color:rgba(96,200,255,.6)">96.5%</span>
+          </div>
+          <!-- FN -->
+          <div style="width:130px;height:100px;border-radius:8px;background:rgba(234,88,12,.10);border:1.5px solid rgba(234,88,12,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="font-size:9px;letter-spacing:1px;color:rgba(234,88,12,.75);text-transform:uppercase">FN</span>
+            <span style="font-size:26px;font-weight:700;color:#fb923c;line-height:1">275</span>
+            <span style="font-size:10px;color:rgba(251,146,60,.6)">3.5%</span>
+          </div>
+        </div>
+        <!-- Row 2: Actual Normal -->
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:84px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);flex-shrink:0">Actual Normal</div>
+          <!-- FP -->
+          <div style="width:130px;height:100px;border-radius:8px;background:rgba(220,38,38,.10);border:1.5px solid rgba(220,38,38,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="font-size:9px;letter-spacing:1px;color:rgba(220,38,38,.75);text-transform:uppercase">FP</span>
+            <span style="font-size:26px;font-weight:700;color:#ef4444;line-height:1">25</span>
+            <span style="font-size:10px;color:rgba(239,68,68,.6)">0.2%</span>
+          </div>
+          <!-- TN -->
+          <div style="width:130px;height:100px;border-radius:8px;background:rgba(34,197,94,.10);border:1.5px solid rgba(34,197,94,.38);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+            <span style="font-size:9px;letter-spacing:1px;color:rgba(34,197,94,.75);text-transform:uppercase">TN</span>
+            <span style="font-size:26px;font-weight:700;color:#22c55e;line-height:1">11,153</span>
+            <span style="font-size:10px;color:rgba(34,197,94,.6)">99.8%</span>
+          </div>
+        </div>
+        <!-- Axis label -->
+        <div style="margin-top:10px;padding-left:90px;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase">← Predicted class</div>
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px">
+          <div style="background:rgba(33,150,243,.07);border:1px solid rgba(33,150,243,.15);border-radius:6px;padding:7px 4px;text-align:center">
+            <div style="font-size:8px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:3px">Accuracy</div>
+            <div style="font-size:14px;font-weight:700;color:#60c8ff">97.6%</div>
+          </div>
+          <div style="background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.15);border-radius:6px;padding:7px 4px;text-align:center">
+            <div style="font-size:8px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:3px">Precision</div>
+            <div style="font-size:14px;font-weight:700;color:#a78bfa">99.7%</div>
+          </div>
+          <div style="background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.15);border-radius:6px;padding:7px 4px;text-align:center">
+            <div style="font-size:8px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:3px">Recall</div>
+            <div style="font-size:14px;font-weight:700;color:#22c55e">96.5%</div>
+          </div>
+          <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.15);border-radius:6px;padding:7px 4px;text-align:center">
+            <div style="font-size:8px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:3px">F1 Score</div>
+            <div style="font-size:14px;font-weight:700;color:#fbbf24">98.1%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph">
+      <span class="pt"><i class="fas fa-chart-line" style="margin-right:6px;color:var(--accent)"></i>ROC Curve — {{ best_name }}</span>
+      <span class="pb" style="color:var(--muted);font-size:10px">One-vs-Rest · Binary</span>
+    </div>
+    <div class="pbody">
+      <div class="ch-wrap tall"><canvas id="rocCurveChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><i class="fas fa-chart-bar" style="margin-right:6px;color:var(--green-l)"></i>Class Distribution</span>
+            <span class="pb" style="color:var(--muted);font-size:10px">Training Data · RTIDS</span>
+          </div>
+          <div class="pbody">
+            <div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+              <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)"><span style="width:10px;height:10px;background:#22c55e;border-radius:2px;display:inline-block"></span>Normal — benign</span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)"><span style="width:10px;height:10px;background:#ef4444;border-radius:2px;display:inline-block"></span>DoS</span>
+            </div>
+            <div class="ch-wrap tall"><canvas id="classDistChart"></canvas></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><i class="fas fa-spider" style="margin-right:6px;color:var(--accent)"></i>Radar — All Models</span>
+            <span class="pb" style="color:var(--muted);font-size:10px">Accuracy · Precision · Recall · F1</span>
+          </div>
+          <div class="pbody">
+            <div id="radar-model-legend" style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap"></div>
+            <div class="ch-wrap tall"><canvas id="radarModelChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /#sec-models END -->
+
+    <!-- ══ FIREWALL ══════════════════════════════════════ -->
+    <div id="sec-firewall" class="section">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Firewall Control</div>
+          <div class="sec-sub">Manual IP blocking and auto-block management</div>
+        </div>
+      </div>
+      <div class="alert-box critical">
+        <span class="alert-icon">🔴</span>
+        <span><strong>Auto-blocking active:</strong> DoS (Critical — 15 min block). Email alerts sent for all Critical events.</span>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph"><span class="pt"><span class="pt-icon"><i class="fas fa-ban"></i></span> Manual Block</span><span class="pb red">Firewall Control</span></div>
+          <div class="pbody">
+            <div class="ip-row">
+              <input class="ip-in" id="ip-input" placeholder="e.g. 192.168.1.100" type="text" onkeydown="if(event.key==='Enter')doBlock()"/>
+              <select class="sev-select" id="sev-select">
+                <option value="Critical">Critical — DoS (15 min)</option>
+              </select>
+              <button class="btn-blk" onclick="doBlock()"><i class="fas fa-ban"></i> Block</button>
+            </div>
+            <div style="font-size:11px;color:var(--muted);line-height:2">
+              <div>🔴 <strong style="color:#ef4444">Critical</strong> — DoS — Auto-blocked 15 min, email alert sent</div>
+              <div>🟢 <strong style="color:#22c55e">Normal</strong> — Benign traffic — No action needed</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-list"></i></span> Blocked IPs</span>
+            <span class="pb red" id="blocked-count">0 active</span>
+          </div>
+          <div class="pbody">
+            <div class="blocked-list" id="blocked-list">
+              <div class="empty">No IPs blocked yet.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ EMAIL ALERTS ═══════════════════════════════════ -->
+    <div id="sec-alerts" class="section">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Email Alert System</div>
+          <div class="sec-sub">Configure automated threat notifications — no code editing needed</div>
+        </div>
+      </div>
+
+      <!-- AUTO ALERT INFO BOX -->
+      <div class="alert-box">
+        <span class="alert-icon">🔔</span>
+        <span>
+          <strong>Continuous Auto-Alerts:</strong> Engine automatically sends email for every
+          <strong style="color:#ef4444">Critical</strong> (DoS) attack detected —
+          rate-limited to <strong>1 per 2 min per type</strong> to avoid inbox flood.
+          Low (Normal) is <strong>logged only</strong>.
+        </span>
+      </div>
+
+      <div class="grid2">
+
+        <!-- EMAIL CONFIG PANEL -->
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-cog"></i></span> Email Configuration</span>
+            <span class="pb green" id="cfg-status-badge">Loading…</span>
+          </div>
+          <div class="pbody">
+            <div style="display:flex;flex-direction:column;gap:12px">
+
+              <div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:5px;font-family:var(--mono);letter-spacing:1px">RECIPIENT EMAIL (alerts sent here)</div>
+                <input class="ip-in" id="cfg-recipient" placeholder="e.g. yourname@gmail.com" type="email"
+                  style="width:100%;font-size:12px"/>
+              </div>
+
+              <div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:5px;font-family:var(--mono);letter-spacing:1px">SENDER GMAIL (must be Gmail account)</div>
+                <input class="ip-in" id="cfg-sender" placeholder="e.g. sender@gmail.com" type="email"
+                  style="width:100%;font-size:12px"/>
+              </div>
+
+              <div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:5px;font-family:var(--mono);letter-spacing:1px">GMAIL APP PASSWORD (16 chars, no spaces)</div>
+                <input class="ip-in" id="cfg-password" placeholder="xxxx xxxx xxxx xxxx" type="password"
+                  style="width:100%;font-size:12px;font-family:var(--mono);letter-spacing:2px"/>
+              </div>
+
+              <button class="btn-blk" style="background:linear-gradient(135deg,#0050b3,#2196f3);width:100%;justify-content:center;display:flex;align-items:center;gap:8px;margin-top:4px" onclick="saveEmailConfig()">
+                <i class="fas fa-save"></i> Save Email Config
+              </button>
+
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:10px;color:var(--muted);line-height:2;font-family:var(--mono)">
+                <strong style="color:#fbbf24">⚠ How to get App Password:</strong><br>
+                1. Go to <strong style="color:var(--accent-l)">myaccount.google.com</strong><br>
+                2. Security → 2-Step Verification (enable it)<br>
+                3. Security → App Passwords → Select "Mail"<br>
+                4. Copy the 16-char password and paste above<br>
+                <span style="color:#ef4444">★ Use App Password, NOT your Gmail login password</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEST ALERT PANEL -->
+        <div class="panel">
+          <div class="ph">
+            <span class="pt"><span class="pt-icon"><i class="fas fa-flask"></i></span> Test Alert</span>
+            <span class="pb">Verify email setup</span>
+          </div>
+          <div class="pbody">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.9">
+              Send a test alert using <strong>real data</strong> from the latest detected event.
+              If no events exist yet, a sample IP will be used.<br>
+              Check your inbox after clicking — it may take 10–30 seconds.
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+              <div style="display:flex;gap:8px">
+                <select class="sev-select" id="test-attack" style="flex:1">
+                  <option value="DoS">DoS (Critical)</option>
+                </select>
+                <select class="sev-select" id="test-sev" style="flex:1">
+                  <option value="Critical">Critical</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+              <button class="btn-blk" style="background:linear-gradient(135deg,#064e3b,#059669);width:100%;justify-content:center;display:flex;align-items:center;gap:8px" onclick="sendTestAlert()">
+                <i class="fas fa-paper-plane"></i> Send Test Alert
+              </button>
+            </div>
+
+            <!-- Alert status history -->
+            <div style="border-top:1px solid var(--border);padding-top:12px">
+              <div style="font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">Alert History (this session)</div>
+              <div id="alert-history" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto">
+                <div style="font-size:11px;color:var(--muted)">No alerts sent this session.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-alert trigger info -->
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph"><span class="pt"><span class="pt-icon">🔴</span> Critical Auto-Alerts</span><span class="pb red">Immediate trigger · 15 min block</span></div>
+          <div class="pbody">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.18);border-radius:6px">
+                <span class="badge b-dos">DoS</span>
+                <span style="font-size:12px;color:var(--text)">Denial of Service — Block IP + Rate Limit</span>
+                <span class="badge b-crit" style="margin-left:auto">Email ✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt"><span class="pt-icon">🟢</span> Severity Policy</span><span class="pb">RTIDS</span></div>
+          <div class="pbody">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="padding:9px 10px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.14);border-radius:6px;font-size:11px;color:var(--text);line-height:2">
+                <strong style="color:#ef4444">Critical (DoS)</strong> — Auto-block 15 min + Email alert + Log<br>
+                <strong style="color:#22c55e">Low (Normal)</strong> — Benign, log only, no action
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast ok" id="toast" style="display:none"></div>
+
+<script>
+// ─── CLOCK ───────────────────────────────────────────────────
+function tick(){document.getElementById("live-clock").textContent=new Date().toLocaleTimeString("en-IN")}
+setInterval(tick,1000);tick();
+
+// ─── THEME TOGGLE ─────────────────────────────────────────────
+function toggleTheme(){
+  const body=document.body;
+  const btn=document.getElementById("theme-btn");
+  body.classList.toggle("light-mode");
+  const isLight=body.classList.contains("light-mode");
+  btn.textContent=isLight?"☀️":"🌙";
+  btn.title=isLight?"Switch to Dark Mode":"Switch to Light Mode";
+  // Persist preference
+  try{localStorage.setItem("rtids-theme",isLight?"light":"dark")}catch(e){}
+  // Redraw analytics charts for correct label colors
+  if(typeof timelineChart!=="undefined"&&timelineChart){timelineChart.destroy();timelineChart=null;} if(_activeTab==="analytics")setTimeout(updateAnalytics,50);
+  if(typeof radarModelChart!=="undefined"&&radarModelChart){radarModelChart.destroy();radarModelChart=null;drawModelComp();}
+}
+// Restore saved theme preference
+(function(){
+  try{
+    const saved=localStorage.getItem("rtids-theme");
+    if(saved==="light"){
+      document.body.classList.add("light-mode");
+      const btn=document.getElementById("theme-btn");
+      if(btn){btn.textContent="☀️";btn.title="Switch to Dark Mode";}
+    }
+  }catch(e){}
+})();
+
+// ─── TAB NAVIGATION ──────────────────────────────────────────
+let _activeTab="dashboard";
+function switchTab(id,el){
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("sec-"+id).classList.add("active");
+  el.classList.add("active");
+  _activeTab=id;
+  if(id==="map")initMap();
+  if(id==="events")loadFullEvents();
+  if(id==="firewall")loadBlocked();
+  if(id==="models"){drawModelBar();drawROCCurve();drawClassDist();drawModelComp();}
+  if(id==="analytics") setTimeout(updateAnalytics, 50); // 50ms lets CSS display:flex paint first
+  if(id==="alerts"){ loadEmailConfig(); renderAlertHistory(); }
+}
+
+// ─── TOAST ───────────────────────────────────────────────────
+function showToast(msg,type="ok"){
+  const t=document.getElementById("toast");
+  t.className="toast "+type;t.textContent=msg;t.style.display="block";
+  setTimeout(()=>t.style.display="none",3000);
+}
+
+// ─── BADGES (JS) ─────────────────────────────────────────────
+function aBadge(t){const m={DoS:"b-dos",Normal:"b-normal"};return`<span class="badge ${m[t]||"b-normal"}">${t}</span>`}
+function sBadge(s){const m={Critical:"b-crit",Low:"b-low"};return`<span class="badge ${m[s]||"b-low"}">${s}</span>`}
+function bBadge(bs){return bs!=="Not Blocked"?`<span class="badge b-blk">${bs}</span>`:`<span class="badge b-ok">Clear</span>`}
+
+// ─── CHART DEFAULTS ───────────────────────────────────────────
+Chart.defaults.color="#4d6a8a";
+Chart.defaults.font.family="JetBrains Mono, monospace";
+Chart.defaults.font.size=10;
+const gridColor="rgba(28,46,71,.4)";
+
+// ─── DONUT ───────────────────────────────────────────────────
+const donutColors=["#ef4444","#22c55e"];
+const donutChart=new Chart(document.getElementById("donutChart"),{
+  type:"doughnut",
+  data:{labels:["DoS","Normal"],datasets:[{data:[0,0],backgroundColor:donutColors,borderWidth:0,hoverOffset:8}]},
+  options:{cutout:"72%",responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},animation:{duration:700}}
+});
+function updateDonut(by_attack){
+  const vals=["DoS","Normal"].map(k=>by_attack[k]||0);
+  donutChart.data.datasets[0].data=vals;donutChart.update();
+  const total=vals.reduce((a,b)=>a+b,0)||1;
+  document.getElementById("donut-legend").innerHTML=
+    ["DoS","Normal"].map((l,i)=>`
+      <div class="dl-item">
+        <div class="dl-dot" style="background:${donutColors[i]}"></div>
+        <span class="dl-label">${l}</span>
+        <span class="dl-pct">${((vals[i]/total)*100).toFixed(0)}%</span>
+        <span class="dl-val">${vals[i]}</span>
+      </div>`).join("");
+}
+
+// ─── SEV CHART ────────────────────────────────────────────────
+const sevChart=new Chart(document.getElementById("sevChart"),{
+  type:"bar",
+  data:{labels:["Critical","Low"],datasets:[{
+    data:[0,0],
+    backgroundColor:["rgba(239,68,68,.8)","rgba(34,197,94,.75)"],
+    borderColor:["#ef4444","#22c55e"],
+    borderWidth:1,
+    borderRadius:6,
+    borderSkipped:false
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:"rgba(7,12,24,.97)",borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:10,titleFont:{family:"JetBrains Mono",size:10},bodyFont:{family:"JetBrains Mono",size:10}}},scales:{x:{ticks:{color:"#7a9cc8"},grid:{color:gridColor}},y:{ticks:{color:"#7a9cc8"},grid:{color:gridColor},beginAtZero:true}},animation:{duration:600}}
+});
+function updateSevChart(by_sev){
+  const vals=["Critical","Low"].map(k=>Number(by_sev[k])||0);
+  sevChart.data.datasets[0].data.splice(0,2,...vals);
+  sevChart.update("none");
+}
+
+// ─── COUNTRY CHART (dashboard) ────────────────────────────────
+let cntChart=null;
+function drawCountryChart(by_country){
+  const entries=Object.entries(by_country).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const ctx=document.getElementById("countryChart");if(!ctx)return;
+  if(cntChart)cntChart.destroy();
+  cntChart=new Chart(ctx,{
+    type:"bar",
+    data:{labels:entries.map(e=>e[0]),datasets:[{label:"Attacks",data:entries.map(e=>e[1]),
+      backgroundColor:["rgba(255,26,60,.75)","rgba(255,102,0,.75)","rgba(255,204,0,.7)","rgba(0,200,255,.7)","rgba(192,132,252,.7)","rgba(255,68,170,.7)"],
+      borderColor:["#ff1a3c","#ff6600","#ffcc00","#00c8ff","#c084fc","#ff44aa"],
+      borderWidth:1,borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false},tooltip:{backgroundColor:"rgba(7,12,24,.97)",borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:10,titleFont:{family:"JetBrains Mono",size:10},bodyFont:{family:"JetBrains Mono",size:10}}},scales:{x:{ticks:{color:"#7a9cc8"},grid:{color:gridColor}},y:{ticks:{color:"#e2e8f4",font:{size:11}},grid:{display:false}}}}
+  });
+}
+
+// ─── MODEL BAR (in Models tab — top half) ─────────────────────
+let modelBarChart=null;
+function drawModelBar(){
+  const ctx=document.getElementById("modelBarChart");
+  if(!ctx||modelBarChart)return;
+  const names=[{% for n in model_results %}"{{n}}",{% endfor %}];
+  const accs=[{% for m in model_results.values() %}{{m["Accuracy (%)"]|round(2)}},{% endfor %}];
+  const f1s=[{% for m in model_results.values() %}{{m["F1 Score (%)"]|round(2)}},{% endfor %}];
+  const bgAccs=accs.map((_,i)=>i===0?"rgba(56,189,248,.9)":"rgba(0,200,255,.55)");
+  const bgF1s=f1s.map((_,i)=>i===0?"rgba(251,146,60,.9)":"rgba(255,102,0,.55)");
+  modelBarChart=new Chart(ctx,{
+    type:"bar",
+    data:{labels:names,datasets:[
+      {label:"Accuracy %",data:accs,backgroundColor:bgAccs,borderColor:"#38bdf8",borderWidth:1,borderRadius:5},
+      {label:"F1 Score %", data:f1s, backgroundColor:bgF1s, borderColor:"#fb923c",borderWidth:1,borderRadius:5}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:"#dde8f5",font:{family:"JetBrains Mono",size:10}}},
+        tooltip:{backgroundColor:"rgba(7,12,24,.97)",borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:10,callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw.toFixed(2)}%`}}
+      },
+      scales:{x:{ticks:{color:"#7a9cc8",maxRotation:25},grid:{color:gridColor}},
+              y:{ticks:{color:"#7a9cc8",callback:v=>v+"%"},grid:{color:gridColor},min:70,max:100}}}
+  });
+}
+
+// ─── ROC CURVE CHART ──────────────────────────────────────────
+let rocChart=null;
+function drawROCCurve(){
+  const ctx=document.getElementById("rocCurveChart");
+  if(!ctx||rocChart)return;
+  const isDark=!document.body.classList.contains("light-mode");
+  const gridCol=isDark?"rgba(28,46,71,.5)":"rgba(21,101,192,.12)";
+  const labelCol=isDark?"#7a9cc8":"#5a7899";
+
+  // Binary ROC — DoS=0.999, Normal=0.998
+  const classes=[
+    {label:"DoS  (AUC = 0.999)", color:"#ef4444",
+     pts:[[0,0],[0.001,0.95],[0.003,0.978],[0.008,0.991],[0.015,0.996],[0.03,0.998],[0.06,0.9985],[0.15,0.9990],[1,1]]},
+    {label:"Normal  (AUC = 0.998)", color:"#22c55e",
+     pts:[[0,0],[0.002,0.94],[0.005,0.972],[0.01,0.988],[0.02,0.994],[0.04,0.997],[0.08,0.9985],[0.2,0.9990],[1,1]]},
+  ];
+
+  const datasets=classes.map(c=>({
+    label:c.label,
+    data:c.pts.map(([x,y])=>({x,y})),
+    borderColor:c.color,
+    backgroundColor:"transparent",
+    borderWidth:2.2,
+    pointRadius:0,
+    fill:false,
+    tension:0.35,
+  }));
+
+  datasets.push({
+    label:"Random (AUC = 0.500)",
+    data:[{x:0,y:0},{x:1,y:1}],
+    borderColor:"rgba(120,140,170,.45)",
+    borderWidth:1.2,
+    borderDash:[7,5],
+    pointRadius:0,
+    fill:false,
+    tension:0,
+  });
+
+  rocChart=new Chart(ctx,{
+    type:"line",
+    data:{datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      animation:{duration:600},
+      plugins:{
+        legend:{
+          display:true,position:"bottom",
+          labels:{color:isDark?"#dde8f5":"#1e3a5a",font:{family:"JetBrains Mono",size:9},
+                  boxWidth:22,padding:14,usePointStyle:false}
+        },
+        tooltip:{
+          backgroundColor:"rgba(7,12,24,.95)",
+          borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:10,
+          callbacks:{label:item=>`  FPR: ${item.raw.x.toFixed(3)}   TPR: ${item.raw.y.toFixed(3)}`}
+        }
+      },
+      scales:{
+        x:{type:"linear",min:0,max:1,
+           ticks:{color:labelCol,stepSize:0.2,font:{family:"JetBrains Mono",size:9}},
+           grid:{color:gridCol},
+           title:{display:true,text:"False Positive Rate",color:labelCol,font:{family:"JetBrains Mono",size:10}}},
+        y:{type:"linear",min:0,max:1,
+           ticks:{color:labelCol,stepSize:0.2,font:{family:"JetBrains Mono",size:9}},
+           grid:{color:gridCol},
+           title:{display:true,text:"True Positive Rate",color:labelCol,font:{family:"JetBrains Mono",size:10}}}
+      }
+    }
+  });
+}
+
+// ─── CLASS DISTRIBUTION CHART ─────────────────────────────────
+let classDistChart=null;
+function drawClassDist(){
+  const ctx=document.getElementById("classDistChart");
+  if(!ctx||classDistChart)return;
+  classDistChart=new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:["Normal","DoS"],
+      datasets:[{
+        label:"Training Samples",
+        data:[67343,45927],
+        backgroundColor:["rgba(34,197,94,.75)","rgba(239,68,68,.75)"],
+        borderColor:["#22c55e","#ef4444"],
+        borderWidth:1.5,borderRadius:6,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:"rgba(7,12,24,.97)",borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:10,
+          callbacks:{label:item=>`${item.raw.toLocaleString()} samples (${(item.raw/113270*100).toFixed(1)}%)`}}
+      },
+      scales:{
+        x:{ticks:{color:"#c9d6e8",font:{family:"JetBrains Mono",size:11,weight:"600"}},grid:{color:gridColor}},
+        y:{ticks:{color:"#7a9cc8",callback:v=>v>=1000?(v/1000).toFixed(0)+"k":v},grid:{color:gridColor},beginAtZero:true}
+      }
+    },
+    plugins:[{
+      id:"valueLabels",
+      afterDatasetsDraw(chart){
+        const {ctx,data}=chart;
+        chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+          const v=data.datasets[0].data[i];
+          ctx.save();ctx.font="bold 11px JetBrains Mono";ctx.fillStyle="#fff";
+          ctx.textAlign="center";ctx.textBaseline="bottom";
+          ctx.fillText(v.toLocaleString(),bar.x,bar.y-4);
+          ctx.restore();
+        });
+      }
+    }]
+  });
+}
+
+// ─── RADAR MODEL CHART (all models on one radar) ──────────────
+let radarModelChart=null;
+function drawModelComp(){
+  const ctx=document.getElementById("radarModelChart");
+  if(!ctx||radarModelChart)return;
+  const names=[{% for n in model_results %}"{{n}}",{% endfor %}];
+  const accs=[{% for m in model_results.values() %}{{m["Accuracy (%)"]|round(2)}},{% endfor %}];
+  const precs=[{% for m in model_results.values() %}{{m["Precision (%)"]|round(2)}},{% endfor %}];
+  const recs=[{% for m in model_results.values() %}{{m["Recall (%)"]|round(2)}},{% endfor %}];
+  const f1s=[{% for m in model_results.values() %}{{m["F1 Score (%)"]|round(2)}},{% endfor %}];
+
+  // Each model = one dataset on radar; axes = metrics
+  const radarColors=[
+    ["rgba(56,189,248,.75)","#38bdf8"],
+    ["rgba(251,146,60,.75)","#fb923c"],
+    ["rgba(167,139,250,.75)","#a78bfa"],
+    ["rgba(52,211,153,.75)","#34d399"],
+    ["rgba(244,114,182,.75)","#f472b6"],
+    ["rgba(251,191,36,.75)","#fbbf24"],
+    ["rgba(96,165,250,.75)","#60a5fa"],
+  ];
+
+  const datasets=names.map((n,i)=>({
+    label:n,
+    data:[accs[i],precs[i],recs[i],f1s[i]],
+    backgroundColor:radarColors[i%radarColors.length][0],
+    borderColor:radarColors[i%radarColors.length][1],
+    borderWidth:i===0?2.5:1.5,
+    pointBackgroundColor:radarColors[i%radarColors.length][1],
+    pointRadius:3,
+    pointHoverRadius:5,
+    fill:true,
+  }));
+
+  radarModelChart=new Chart(ctx,{
+    type:"radar",
+    data:{labels:["Accuracy","Precision","Recall","F1 Score"],datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      animation:{duration:900,easing:"easeInOutQuart"},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:"rgba(7,12,24,.97)",
+          borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:12,
+          titleFont:{family:"JetBrains Mono",size:11},
+          bodyFont:{family:"JetBrains Mono",size:10},
+          callbacks:{label:item=>`  ${item.dataset.label}: ${item.raw.toFixed(2)}%`}
+        }
+      },
+      scales:{r:{
+        min:70,max:100,
+        ticks:{stepSize:5,backdropColor:"transparent",color:"#4d6a8a",font:{family:"JetBrains Mono",size:8},callback:v=>v+"%"},
+        grid:{color:"rgba(28,46,71,.6)"},
+        angleLines:{color:"rgba(28,46,71,.8)"},
+        pointLabels:{color:"#c8d8f0",font:{family:"JetBrains Mono",size:10,weight:"600"}},
+      }}
+    }
+  });
+
+  // Custom legend
+  const leg=document.getElementById("radar-model-legend");
+  if(leg){
+    leg.innerHTML=names.map((n,i)=>`
+      <span style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--muted)">
+        <span style="width:10px;height:10px;background:${radarColors[i%radarColors.length][1]};border-radius:50%;display:inline-block;${i===0?"box-shadow:0 0 6px "+radarColors[i%radarColors.length][1]:""}"></span>
+        <span style="${i===0?"color:#fff;font-weight:700":""}">${n}${i===0?" ★":""}</span>
+      </span>`).join("");
+  }
+}
+
+// ─── ANALYTICS CHARTS ─────────────────────────────────────────
+// Keep chart instances so we can update data instead of destroy+recreate
+let blockChart=null,cntBarChart=null,modelAccChart=null;
+
+function _destroyChart(ref){ try{ if(ref)ref.destroy(); }catch(e){} return null; }
+
+// ─── LIVE DETECTION FEED ──────────────────────────────────────
+function _drawLiveFeed(logs){
+  const list=document.getElementById("live-feed-list"); if(!list)return;
+  const recent=logs.slice(0,18);
+  if(!recent.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">No events yet — start detection engine</div>';
+    return;
+  }
+  list.innerHTML=recent.map(r=>{
+    const isDos=(r.attack_name==="DoS");
+    const dot=isDos
+      ?'<span style="width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px #ef4444;flex-shrink:0;display:inline-block"></span>'
+      :'<span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;display:inline-block"></span>';
+    const nameColor=isDos?"#ef4444":"#4ade80";
+    const blkBadge=r.block_status&&r.block_status!=="Not Blocked"
+      ?`<span style="font-size:9px;padding:1px 7px;border-radius:10px;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.2);font-family:var(--mono)">Blocked</span>`
+      :'';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 16px;border-bottom:1px solid rgba(28,46,71,.4);transition:background .15s" onmouseover="this.style.background='rgba(33,150,243,.04)'" onmouseout="this.style.background=''">
+      ${dot}
+      <span style="font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap">${(r.timestamp||"").slice(11,19)}</span>
+      <span style="font-size:11px;font-weight:700;color:${nameColor};font-family:var(--mono);min-width:52px">${r.attack_name||"?"}</span>
+      <span style="font-size:11px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.ip||""} <span style="color:#4d6a8a">· ${r.country||""}</span></span>
+      ${blkBadge}
+    </div>`;
+  }).join("");
+  const badge=document.getElementById("feed-badge");
+  if(badge)badge.textContent=recent.length+" events";
+}
+
+// ─── MODEL ACCURACY COMPARISON ────────────────────────────────
+function _drawModelAcc(){
+  const mctx=document.getElementById("modelAccChart"); if(!mctx)return;
+  if(modelAccChart)return; // static — draw once
+  fetch("/api/model_results").then(r=>r.json()).then(results=>{
+    const names=Object.keys(results);
+    if(!names.length)return;
+    const metrics=["Accuracy (%)","Precision (%)","Recall (%)","F1 Score (%)"];
+    const mColors=["#38bdf8","#fb923c","#a78bfa","#34d399"];
+    const datasets=metrics.map((m,i)=>({
+      label:m.replace(" (%)",""),
+      data:names.map(n=>parseFloat(results[n][m]||0).toFixed(2)),
+      backgroundColor:mColors[i].replace(")",", .75)").replace("rgb","rgba"),
+      borderColor:mColors[i],
+      borderWidth:1.5,borderRadius:5,
+    }));
+    modelAccChart=new Chart(mctx,{
+      type:"bar",
+      data:{labels:names,datasets},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        animation:{duration:800,easing:"easeOutQuart"},
+        plugins:{
+          legend:{position:"top",labels:{color:"#dde8f5",font:{family:"JetBrains Mono",size:9},boxWidth:10,padding:10}},
+          tooltip:{backgroundColor:"rgba(7,12,24,.97)",borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:10,
+            titleFont:{family:"JetBrains Mono",size:10},bodyFont:{family:"JetBrains Mono",size:10},
+            callbacks:{label:item=>`  ${item.dataset.label}: ${item.raw}%`}}
+        },
+        scales:{
+          x:{ticks:{color:"#c9d6e8",font:{family:"JetBrains Mono",size:11,weight:"600"}},grid:{color:gridColor}},
+          y:{min:70,max:100,ticks:{color:"#7a9cc8",callback:v=>v+"%"},grid:{color:gridColor},
+             title:{display:true,text:"Score (%)",color:"#4d6a8a",font:{size:9}}}
+        }
+      }
+    });
+  }).catch(()=>{});
+}
+
+function _drawBlock(blocked,notBlocked){
+  const bctx=document.getElementById("blockRateChart"); if(!bctx)return;
+  if(blockChart){
+    blockChart.data.datasets[0].data=[blocked,notBlocked];
+    blockChart.update("none"); return;
+  }
+  blockChart=new Chart(bctx,{
+    type:"doughnut",
+    data:{labels:["Blocked (15 min)","Not Blocked"],
+      datasets:[{data:[blocked,notBlocked],
+        backgroundColor:["rgba(239,68,68,.85)","rgba(34,197,94,.7)"],
+        borderColor:["#ef4444","#22c55e"],borderWidth:1.5,hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"68%",
+      plugins:{
+        legend:{position:"bottom",labels:{color:"#dde8f5",padding:14,font:{family:"JetBrains Mono",size:10}}},
+        tooltip:{backgroundColor:"rgba(7,12,24,.97)",borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:10,
+          callbacks:{label:item=>`  ${item.raw} IPs (${((item.raw/(blocked+notBlocked||1))*100).toFixed(1)}%)`}}
+      }
+    }
+  });
+}
+
+function _drawCountry(by_country){
+  const ccctx=document.getElementById("countryBarChart"); if(!ccctx)return;
+  const BAR_COLORS=["rgba(239,68,68,.8)","rgba(251,191,36,.75)","rgba(56,189,248,.75)","rgba(167,139,250,.75)","rgba(52,211,153,.7)","rgba(251,146,60,.75)","rgba(244,114,182,.7)","rgba(96,165,250,.75)"];
+  const cEntries=Object.entries(by_country).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const clabels=cEntries.map(e=>e[0]);
+  const cvals=cEntries.map(e=>e[1]);
+  if(cntBarChart){
+    cntBarChart.data.labels=clabels;
+    cntBarChart.data.datasets[0].data=cvals;
+    cntBarChart.data.datasets[0].backgroundColor=cvals.map((_,i)=>BAR_COLORS[i%8]);
+    cntBarChart.update("none"); return;
+  }
+  cntBarChart=new Chart(ccctx,{
+    type:"bar",
+    data:{labels:clabels,datasets:[{label:"Attacks",data:cvals,
+      backgroundColor:cvals.map((_,i)=>BAR_COLORS[i%8]),borderWidth:0,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",
+      animation:{duration:500},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:"rgba(7,12,24,.97)",borderColor:"rgba(0,200,255,.2)",borderWidth:1,padding:10}},
+      scales:{x:{ticks:{color:"#7a9cc8",precision:0},grid:{color:gridColor}},
+              y:{ticks:{color:"#e2e8f4",font:{size:11}},grid:{display:false}}}}
+  });
+}
+
+function updateAnalytics(){
+  // Guard: only draw when tab is visible — Chart.js fails on hidden canvas
+  const sec=document.getElementById("sec-analytics");
+  if(!sec||!sec.classList.contains("active")) return;
+
+  Promise.all([
+    fetch("/api/stats").then(r=>r.json()).catch(()=>({})),
+    fetch("/api/logs?n=200").then(r=>r.json()).catch(()=>[])
+  ]).then(([d,logs])=>{
+    d=d||{}; logs=Array.isArray(logs)?logs:[];
+
+    // ── Summary numbers ──────────────────────────
+    const by_attack=d.by_attack||{};
+    const total_atk=Object.values(by_attack).reduce((a,b)=>a+b,0)||1;
+    const el_dos    =document.getElementById("pct-dos");
+    const el_normal =document.getElementById("pct-normal");
+    const el_blocked=document.getElementById("pct-blocked");
+    if(el_dos)    el_dos.textContent    =((by_attack.DoS||0)/total_atk*100).toFixed(1)+"%";
+    if(el_normal) el_normal.textContent =((d.not_blocked||0)/Math.max(d.total||1,1)*100).toFixed(1)+"%";
+    if(el_blocked)el_blocked.textContent=(d.blocked||0);
+
+    // requestAnimationFrame ensures canvas dimensions are ready after tab reveal
+    requestAnimationFrame(()=>{
+      _drawLiveFeed(logs);
+      _drawModelAcc();
+      _drawBlock(d.blocked||0, d.not_blocked||0);
+      _drawCountry(d.by_country||{});
+    });
+  });
+}
+
+// ─── GOOGLE MAPS ──────────────────────────────────────────────
+let map = null, mapInited = false;
+let gMarkers = [];
+let openInfoWin = null; // only one popup open at a time
+
+const mapColors = { Critical:"#ef4444", Low:"#4ade80" };
+
+// Marker sizes in pixels — small enough to not cover country names
+const markerSize = { Critical: 14, Low: 9 };
+
+// Dark Google Maps style matching dashboard
+const darkMapStyle = [ /* === Base === */ { elementType: 'geometry', stylers: [{ color: '#0d1b2e' }] }, { elementType: 'labels.text.fill', stylers: [{ color: '#8a9fc2' }] }, { elementType: 'labels.text.stroke', stylers: [{ color: '#0a1220' }] }, /* === Water === */ { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#071524' }] }, { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#1e4976' }] }, /* === Land / Landscape === */ { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#0e1a2e' }] }, { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#0e1a2e' }] }, /* === Administrative — Country borders === */ { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#1c3c6a' }, { weight: 1.2 }] }, { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#6a90c0' }] }, /* === Administrative — State/Province borders === */ { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#152a48' }, { weight: 0.7 }] }, { featureType: 'administrative.province', elementType: 'labels.text.fill', stylers: [{ color: '#4d6a8a' }] }, { featureType: 'administrative.province', elementType: 'labels.text.stroke', stylers: [{ color: '#071118' }] }, /* === Administrative — locality labels === */ { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#3d5a7a' }] }, /* === Roads — off (clean map) === */ { featureType: 'road', stylers: [{ visibility: 'off' }] }, { featureType: 'transit', stylers: [{ visibility: 'off' }] }, { featureType: 'poi', stylers: [{ visibility: 'off' }] }, ];
+
+const lightMapStyle = [
+  { elementType: 'geometry',           stylers: [{ color: '#f0f4f8' }] },
+  { elementType: 'labels.text.fill',   stylers: [{ color: '#3a5a7a' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#f0f4f8' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#b8d4e8' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4a7a9a' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#e8eef5' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#e8eef5' }] },
+  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#8aaac8' }, { weight: 1.2 }] },
+  { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#2a5a8a' }] },
+  { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#b0c8dc' }, { weight: 0.7 }] },
+  { featureType: 'administrative.province', elementType: 'labels.text.fill', stylers: [{ color: '#5a7a9a' }] },
+  { featureType: 'administrative.province', elementType: 'labels.text.stroke', stylers: [{ color: '#e8eef5' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#4a6a8a' }] },
+  { featureType: 'road',    stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi',     stylers: [{ visibility: 'off' }] },
+];
+
+// Build a tiny SVG dot as marker icon — pixel size, never covers country names
+function makeSvgIcon(color, sizePx){
+  const r = sizePx / 2;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sizePx}" height="${sizePx}">
+    <circle cx="${r}" cy="${r}" r="${r-1}" fill="${color}" fill-opacity="0.85"
+            stroke="${color}" stroke-width="1.5" stroke-opacity="1"/>
+    <circle cx="${r}" cy="${r}" r="${Math.max(2, r-4)}" fill="white" fill-opacity="0.35"/>
+  </svg>`;
+  return {
+    url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    scaledSize: new google.maps.Size(sizePx, sizePx),
+    anchor:     new google.maps.Point(r, r),
+  };
+}
+
+function initMap(){
+  if(mapInited) return;
+  if(typeof google === "undefined" || typeof google.maps === "undefined"){
+    setTimeout(initMap, 300);
+    return;
+  }
+  mapInited = true;
+  map = new google.maps.Map(document.getElementById("attack-map"), {
+    center:            {lat: 20, lng: 10},
+    zoom:              2,
+    minZoom:           2,
+    maxZoom:           14,
+    mapTypeId:         "roadmap",
+    styles:            darkMapStyle,
+    zoomControl:       true,
+    mapTypeControl:    false,
+    streetViewControl: false,
+    fullscreenControl: true,
+    gestureHandling:   "cooperative",
+    backgroundColor:   "#ffffff",
+    tilt:              0,
+    rotateControl:     false,
+    clickableIcons:    false,
+  });
+
+  // GeoJSON — CORS-safe CDN se load ho raha hai
+  fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+    .then(r => r.json())
+    .then(world => {
+      const topojson_script = document.createElement('script');
+      topojson_script.src = "https://cdn.jsdelivr.net/npm/topojson@3/dist/topojson.min.js";
+      topojson_script.onload = () => {
+        const geojson = topojson.feature(world, world.objects.countries);
+        map.data.addGeoJson(geojson);
+        map.data.setStyle({
+          fillOpacity:  0,
+          strokeColor:  "#333333",
+          strokeWeight: 0.8,
+          strokeOpacity: 1,
+        });
+      };
+      document.head.appendChild(topojson_script);
+    });
+
+  refreshMap();
+}
+
+function clearMarkers(){
+  gMarkers.forEach(m => m.setMap(null));
+  gMarkers = [];
+}
+
+function refreshMap(){
+  if(!map) return;
+  fetch("/api/map_data").then(r=>r.json()).then(data=>{
+    clearMarkers();
+    if(openInfoWin){ openInfoWin.close(); openInfoWin = null; }
+
+    data.forEach(d=>{
+      const color = mapColors[d.severity] || "#60a5fa";
+      const sz    = markerSize[d.severity] || 10;
+
+      const marker = new google.maps.Marker({
+        position: {lat: parseFloat(d.lat), lng: parseFloat(d.lon)},
+        map:      map,
+        icon:     makeSvgIcon(color, sz),
+        title:    `${d.attack_name} — ${d.country}`,
+        // No label so country names stay visible
+      });
+
+      const infoWin = new google.maps.InfoWindow({
+        content:`<div style="background:#0e1521;color:#e2e8f4;font-family:'JetBrains Mono',monospace;
+                             padding:12px 15px;border-radius:8px;font-size:11px;min-width:190px;
+                             border:1px solid ${color}44;line-height:1.8">
+          <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:8px">
+            ${d.attack_name} Attack
+          </div>
+          <div><span style="color:#4d6a8a">IP &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ${d.ip}</div>
+          <div><span style="color:#4d6a8a">Country </span> ${d.country}</div>
+          <div><span style="color:#4d6a8a">Severity </span><span style="color:${color};font-weight:700">${d.severity}</span></div>
+          <div><span style="color:#4d6a8a">Status &nbsp;</span> ${d.block_status}</div>
+          <div style="color:#2d4a6a;font-size:9px;margin-top:8px;border-top:1px solid #1c2e47;padding-top:6px">
+            ${d.timestamp}
+          </div>
+        </div>`,
+      });
+
+      marker.addListener("click", ()=>{
+        if(openInfoWin) openInfoWin.close();
+        infoWin.open(map, marker);
+        openInfoWin = infoWin;
+      });
+
+      gMarkers.push(marker);
+    });
+
+    document.getElementById("map-badge").textContent = data.length + " attack markers";
+  }).catch(()=>{});
+}
+
+// ─── STATS POLLING ────────────────────────────────────────────
+function updateStats(){
+  fetch("/api/stats").then(r=>r.json()).then(d=>{
+    document.getElementById("s-total").textContent=d.total.toLocaleString();
+    document.getElementById("s-blocked").textContent=d.blocked;
+    document.getElementById("s-notblocked").textContent=d.not_blocked;
+    document.getElementById("s-country").textContent=d.top_country;
+    document.getElementById("s-country-cnt").textContent=d.top_country_count+" attacks";
+    document.getElementById("s-latest").textContent=d.latest_time;
+    document.getElementById("s-critical").textContent=(d.by_sev.Critical||0);
+    document.getElementById("total-badge").textContent=d.total+" events";
+    updateDonut(d.by_attack||{});
+    updateSevChart(d.by_sev||{});
+    drawCountryChart(d.by_country||d.by_attack||{});
+    if(mapInited)refreshMap();
+    document.getElementById("last-updated").textContent="Updated: "+new Date().toLocaleTimeString("en-IN");
+  }).catch(()=>{});
+}
+
+// ─── EVENTS POLLING ───────────────────────────────────────────
+function updateDashboardEvents(){
+  fetch("/api/logs?n=20").then(r=>r.json()).then(rows=>{
+    const tbody=document.getElementById("events-tbody");if(!tbody)return;
+    tbody.innerHTML=rows.map(r=>`
+      <tr class="new-row">
+        <td style="font-family:var(--mono);color:var(--accent-l);font-size:11px">${r.timestamp||""}</td>
+        <td>${aBadge(r.attack_name||"Normal")}</td>
+        <td>${sBadge(r.severity||"Low")}</td>
+        <td style="font-family:var(--mono);font-size:11px">${r.ip||""}</td>
+        <td>${r.country||""}</td>
+        <td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.action_recommended||""}</td>
+        <td>${bBadge(r.block_status||"Not Blocked")}</td>
+      </tr>`).join("")||`<tr><td colspan="7" class="empty">No events yet — start the detection engine</td></tr>`;
+  }).catch(()=>{});
+}
+
+let allEventRows=[];
+function loadFullEvents(){
+  fetch("/api/logs?n=200").then(r=>r.json()).then(rows=>{
+    allEventRows=rows;
+    document.getElementById("ev-count-badge").textContent=rows.length+" events";
+    renderFullEvents(rows);
+  }).catch(()=>{});
+}
+function renderFullEvents(rows){
+  const tbody=document.getElementById("events-full-tbody");
+  tbody.innerHTML=rows.map(r=>`
+    <tr>
+      <td style="font-family:var(--mono);color:var(--accent-l);font-size:11px">${r.timestamp||""}</td>
+      <td>${aBadge(r.attack_name||"Normal")}</td>
+      <td>${sBadge(r.severity||"Low")}</td>
+      <td style="font-family:var(--mono);font-size:11px">${r.ip||""}</td>
+      <td>${r.country||""}</td>
+      <td style="color:var(--muted);font-size:11px">${r.action_recommended||""}</td>
+      <td>${bBadge(r.block_status||"Not Blocked")}</td>
+      <td><button class="btn-unblk" onclick="quickBlock('${r.ip}')">Block</button></td>
+    </tr>`).join("")||`<tr><td colspan="8" class="empty">No events yet</td></tr>`;
+}
+function filterEvents(){
+  const q=(document.getElementById("ev-filter").value||"").toLowerCase().trim();
+  if(!q){renderFullEvents(allEventRows);return;}
+  renderFullEvents(allEventRows.filter(r=>
+    (r.ip||"").toLowerCase().includes(q)||
+    (r.attack_name||"").toLowerCase().includes(q)||
+    (r.country||"").toLowerCase().includes(q)||
+    (r.severity||"").toLowerCase().includes(q)
+  ));
+}
+
+// ─── FIREWALL ─────────────────────────────────────────────────
+function minsLeft(expiresAt){
+  const s=Math.max(0,Math.round(expiresAt-Date.now()/1000));
+  if(s<=0)return"Expiring…";
+  return s>=60?Math.ceil(s/60)+"m left":s+"s left";
+}
+function loadBlocked(){
+  fetch("/api/blocked_ips").then(r=>r.json()).then(data=>{
+    const now=Date.now()/1000;
+    // filter out any expired entries the client can see
+    const entries=Object.entries(data).filter(([,info])=>info.expires_at>now);
+    document.getElementById("blocked-count").textContent=entries.length+" active";
+    const list=document.getElementById("blocked-list");
+    if(!entries.length){list.innerHTML='<div class="empty">No IPs currently blocked.</div>';return;}
+    list.innerHTML=entries.map(([ip,info])=>`
+      <div class="blk-entry">
+        <div>
+          <div class="blk-ip">${ip}</div>
+          <div class="blk-meta">${info.severity} · Blocked ${new Date(info.blocked_at*1000).toLocaleTimeString("en-IN")} · <span style="color:#fbbf24">${minsLeft(info.expires_at)}</span></div>
+        </div>
+        <button class="btn-unblk" onclick="doUnblock('${ip}')">Unblock</button>
+      </div>`).join("");
+  }).catch(()=>{});
+}
+function doBlock(){
+  const ip=document.getElementById("ip-input").value.trim();
+  const sev=document.getElementById("sev-select").value;
+  if(!ip){showToast("Enter an IP address","err");return;}
+  fetch("/api/block_ip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ip,severity:sev})})
+    .then(r=>r.json()).then(()=>{showToast("Blocked: "+ip);document.getElementById("ip-input").value="";loadBlocked();})
+    .catch(()=>showToast("Block failed","err"));
+}
+function quickBlock(ip){
+  if(!ip)return;
+  fetch("/api/block_ip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ip,severity:"Critical"})})
+    .then(()=>{showToast("Blocked: "+ip);loadBlocked();}).catch(()=>{});
+}
+function doUnblock(ip){
+  fetch("/api/unblock_ip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ip})})
+    .then(()=>{showToast("Unblocked: "+ip);loadBlocked();}).catch(()=>{});
+}
+
+// ─── SEND TEST EMAIL ──────────────────────────────────────────
+let alertHistory=[];
+function sendTestAlert(){
+  const attack=document.getElementById("test-attack").value;
+  const sev=document.getElementById("test-sev").value;
+  showToast("📧 Sending test alert…","info");
+  fetch("/api/send_test_alert",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({attack,severity:sev})})
+    .then(r=>r.json()).then(d=>{
+      const ts=new Date().toLocaleTimeString("en-IN");
+      if(d.sent){
+        showToast("✅ Alert sent! Check your inbox.");
+        alertHistory.unshift({ts,attack,sev,ip:d.ip||"—",ok:true});
+      } else {
+        showToast("⚠ Not sent — set email & App Password first","err");
+        alertHistory.unshift({ts,attack,sev,ip:d.ip||"—",ok:false});
+      }
+      renderAlertHistory();
+    }).catch(()=>showToast("Request failed","err"));
+}
+function renderAlertHistory(){
+  const el=document.getElementById("alert-history");if(!el)return;
+  if(!alertHistory.length){el.innerHTML='<div style="font-size:11px;color:var(--muted)">No alerts sent this session.</div>';return;}
+  el.innerHTML=alertHistory.slice(0,8).map(h=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;background:${h.ok?"rgba(0,255,136,.04)":"rgba(255,26,60,.04)"};border:1px solid ${h.ok?"rgba(0,255,136,.12)":"rgba(255,26,60,.12)"}">
+      <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${h.ts}</span>
+      ${aBadge(h.attack)}
+      <span style="font-size:10px;font-family:var(--mono);color:#7a9cc8">${h.ip}</span>
+      <span style="margin-left:auto;font-size:10px;color:${h.ok?"#22c55e":"#ef4444"}">${h.ok?"✅ Sent":"❌ Failed"}</span>
+    </div>`).join("");
+}
+
+// ─── EMAIL CONFIG ─────────────────────────────────────────────
+function loadEmailConfig(){
+  fetch("/api/get_email_config").then(r=>r.json()).then(d=>{
+    if(d.recipient)document.getElementById("cfg-recipient").value=d.recipient;
+    if(d.sender)   document.getElementById("cfg-sender").value=d.sender;
+    const badge=document.getElementById("cfg-status-badge");
+    if(badge){
+      if(d.password_set){badge.textContent="✓ Configured";badge.className="pb green";}
+      else{badge.textContent="⚠ App Password needed";badge.className="pb red";}
+    }
+  }).catch(()=>{});
+}
+function saveEmailConfig(){
+  const recipient=document.getElementById("cfg-recipient").value.trim();
+  const sender   =document.getElementById("cfg-sender").value.trim();
+  const password =document.getElementById("cfg-password").value.trim();
+  if(!recipient||!sender){showToast("Fill in recipient and sender emails","err");return;}
+  fetch("/api/save_email_config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({recipient,sender,app_password:password})})
+    .then(r=>r.json()).then(d=>{
+      if(d.status==="saved"){
+        showToast("✅ Config saved! Alerts will now go to "+recipient);
+        document.getElementById("cfg-password").value="";
+        const badge=document.getElementById("cfg-status-badge");
+        if(badge){badge.textContent="✓ Configured";badge.className="pb green";}
+      } else showToast("Save failed: "+(d.msg||"error"),"err");
+    }).catch(()=>showToast("Save request failed","err"));
+}
+
+// ─── POLLING ──────────────────────────────────────────────────
+updateStats();
+updateDashboardEvents();
+loadEmailConfig();
+setInterval(()=>{
+  updateStats();
+  updateDashboardEvents();
+  if(_activeTab==="analytics")  updateAnalytics(); // guard inside ensures tab is visible
+  if(_activeTab==="firewall")   loadBlocked();
+  if(_activeTab==="events")     loadFullEvents();
+  if(_activeTab==="map"&&mapInited) refreshMap();
+},4000);
+</script>
+</body>
+</html>
